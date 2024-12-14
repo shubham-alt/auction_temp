@@ -155,3 +155,22 @@ if (current_player := st.session_state.auction_state.get("current_player")) is n
                     # Update current bid and winning team
                     st.session_state.auction_state['current_bid'] = new_bid_amount
                     st.session_state.auction_state['winning_team'] = team_name
+
+# Display current bid information if there is a winning team
+if (winning_team := st.session_state.auction_state.get("winning_team")) is not None:
+    current_bid = round(st.session_state.auction_state['current_bid'], 1)
+    st.write(f"Current Bid: {current_bid} Cr by {winning_team}")
+
+if (st.button("Undo Last Auction", key="undo_last_auction_button")):
+    undo_last_auction()
+
+st.write("---")
+
+# Display teams' information
+team_cols = st.columns(3)
+for i, team_name in enumerate(teams):
+    with team_cols[i]:
+        display_team_info(team_name)
+
+st.write("---")
+display_available_players()
