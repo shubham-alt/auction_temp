@@ -133,44 +133,11 @@ def undo_last_auction():
 # Streamlit app layout
 st.title("Player Auction")
 
-if (start_button := st.button("Start Auction")) or (st.button("Finalize Auction") and finalize_auction()):
+# Adding unique keys to buttons to avoid duplicate IDs error
+if (st.button("Start Auction", key="start_auction_button")):
     start_auction()
 
-if (current_player := st.session_state.auction_state.get("current_player")) is not None:
-    cols = st.columns(3)
-    
-    for i, team_name in enumerate(teams):
-        # Prevent the winning team from placing a bid again
-        if team_name != (st.session_state.auction_state.get("winning_team")):
-            if cols[i].button(f"{team_name} Bid"):
-                # Increase bid and set winning team
-                bid_amount_increment = 0.5
-                new_bid_amount = round(st.session_state.auction_state['current_bid'] + bid_amount_increment, 1)
-                
-                if new_bid_amount <= teams[team_name]["purse"]:  # Check if the team can afford the new bid
-                    # Update current bid and winning team
-                    st.session_state.auction_state['current_bid'] = new_bid_amount
-                    st.session_state.auction_state['winning_team'] = team_name
-
-# Display current bid information if there is a winning team
-if (winning_team := st.session_state.auction_state.get("winning_team")) is not None:
-    current_bid = round(st.session_state.auction_state['current_bid'], 1)
-    st.write(f"Current Bid: {current_bid} Cr by {winning_team}")
-
-# Finalize auction action integrated with Start Auction button functionality.
-if start_button or (st.button("Finalize Auction") and finalize_auction()):
+if (st.button("Finalize Auction", key="finalize_auction_button")):
     finalize_auction()
 
-if st.button("Undo Last Auction"):
-    undo_last_auction()
-
-st.write("---")
-
-# Display teams' information
-team_cols = st.columns(3)
-for i, team_name in enumerate(teams):
-    with team_cols[i]:
-        display_team_info(team_name)
-
-st.write("---")
-display_available_players()
+if (current_player := st.session_state.auction_state.get("current_player")) is not None:
