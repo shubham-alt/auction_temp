@@ -29,10 +29,12 @@ def get_next_player():
 # Auction logic
 def finalize_auction(winning_team):
     if winning_team:
+        # Add player with all details including Rating and Role
         st.session_state.teams[winning_team]['players'].append({
             'Name': st.session_state.current_player['Name'],
             'Price': st.session_state.current_bid,
-            'Role': st.session_state.current_player['Role']
+            'Role': st.session_state.current_player['Role'],
+            'Rating': st.session_state.current_player['Rating']  # Include Rating here
         })
         st.session_state.teams[winning_team]['budget'] -= st.session_state.current_bid
         st.session_state.last_auction = (st.session_state.current_player['Name'], winning_team, st.session_state.current_bid)
@@ -52,21 +54,18 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     if st.button("Mospher Bid"):
-        if st.session_state.teams['Mospher']['budget'] >= (st.session_state.current_bid + 0.5):
+        if (st.session_state.current_bid + 0.5) <= st.session_state.teams['Mospher']['budget']:
             st.session_state.current_bid += 0.5
-            reset_auction()  # Reset auction after bid
 
 with col2:
     if st.button("Goku Bid"):
-        if st.session_state.teams['Goku']['budget'] >= (st.session_state.current_bid + 0.5):
+        if (st.session_state.current_bid + 0.5) <= st.session_state.teams['Goku']['budget']:
             st.session_state.current_bid += 0.5
-            reset_auction()
 
 with col3:
     if st.button("Maverick Bid"):
-        if st.session_state.teams['Maverick']['budget'] >= (st.session_state.current_bid + 0.5):
+        if (st.session_state.current_bid + 0.5) <= st.session_state.teams['Maverick']['budget']:
             st.session_state.current_bid += 0.5
-            reset_auction()
 
 # Finalizing auction button
 if st.button("Finalize Auction"):
@@ -96,7 +95,7 @@ for team_name, team_info in st.session_state.teams.items():
     st.write(f"### {team_name} - Budget: ₹{team_info['budget']}")
     players_df = pd.DataFrame(team_info['players']).sort_values(by='Rating', ascending=False)
     if not players_df.empty:
-        st.write(players_df[['Name', 'Price', 'Role']])
+        st.write(players_df[['Name', 'Price', 'Role', 'Rating']])  # Include Rating here
 
 # Display remaining players to be auctioned
 remaining_players = players_data[~players_data['Name'].isin([p['Name'] for team in st.session_state.teams.values() for p in team['players']])]
