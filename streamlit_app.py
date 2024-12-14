@@ -19,7 +19,7 @@ if 'teams' not in st.session_state:
         'Maverick': {'budget': 120, 'players': []}
     }
 if 'current_player' not in st.session_state:
-    st.session_state.current_player = None
+    st.session_state.current_player = get_next_player()  # Get initial player
 if 'current_bid' not in st.session_state:
     st.session_state.current_bid = 2.0
 if 'last_auction' not in st.session_state:
@@ -47,6 +47,7 @@ def finalize_auction(winning_team):
         reset_auction()
 
 def reset_auction():
+    # Get the next player and reset bid amount
     st.session_state.current_player = get_next_player()
     st.session_state.current_bid = 2.0
 
