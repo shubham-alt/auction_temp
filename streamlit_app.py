@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import random
 
 # Load player data from CSV file
 players_data = pd.read_csv('players_data.csv')  # Ensure the CSV has columns: Name, Rating, Role
@@ -34,7 +33,7 @@ if 'last_auction' not in st.session_state:
 
 # Auction logic
 def finalize_auction(winning_team):
-    if winning_team:
+    if winning_team and st.session_state.current_player is not None:
         # Add player with all details including Rating and Role
         st.session_state.teams[winning_team]['players'].append({
             'Name': st.session_state.current_player['Name'],
@@ -73,7 +72,8 @@ if st.button("Start Auction"):
 if st.button("Restart Auction"):
     reset_auction()
 
-st.write("Current Player: ", st.session_state.current_player['Name'] if st.session_state.current_player is not None else "No player available")
+st.write("Current Player: ", 
+         st.session_state.current_player['Name'] if st.session_state.current_player is not None else "No player available")
 st.write("Current Bid: ₹", st.session_state.current_bid)
 
 # Buttons for bidding
@@ -97,7 +97,10 @@ with col3:
 # Finalizing auction button
 if st.button("Finalize Auction"):
     winning_team = max(st.session_state.teams.keys(), key=lambda k: (st.session_state.current_bid if k in ['Mospher', 'Goku', 'Maverick'] else 0))
-    finalize_auction(winning_team)
+    
+    # Ensure we only finalize if there's a current player and a valid winning team.
+    if winning_team and st.session_state.current_player is not None:
+        finalize_auction(winning_team)
 
 # Next player button
 if st.button("Next Player"):
