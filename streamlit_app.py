@@ -44,21 +44,15 @@ def display_team_info(team_name):
     st.write(f"Purse: {teams[team_name]['purse']} Cr")
 
 def display_available_players():
-    """Display players still available for bidding in groups side by side."""
+    """Display players still available for bidding."""
     st.subheader("Players Still Available")
     available_players = st.session_state.auction_state["available_players"]
     
     if not available_players.empty:
-        roles = available_players["Role"].unique()
-        
-        # Create columns for each role
-        cols = st.columns(len(roles))
-        
-        for i, role in enumerate(roles):
-            with cols[i]:
-                st.write(f"**{role}**")
-                role_players = available_players[available_players["Role"] == role].sort_values(by="Rating", ascending=False)
-                st.dataframe(role_players[["Name", "Rating"]])
+        for role in available_players["Role"].unique():
+            st.write(f"**{role}**")
+            role_players = available_players[available_players["Role"] == role].sort_values(by="Rating", ascending=False)
+            st.dataframe(role_players[["Name", "Rating"]])
     else:
         st.write("No players left.")
 
@@ -158,25 +152,25 @@ if (current_player := st.session_state.auction_state.get("current_player")) is n
                 # Update current bid and set the winning team
                 if new_bid_amount > (st.session_state.auction_state['current_bid']):
                     # Only update winning team if new bid exceeds current bid
-                    st.session_state.auction.state['current_bid'] = new_bid_amount
-                    st.session.state['winning_team'] = team_name
+                    st.session_state.auction_state['current_bid'] = new_bid_amount
+                    st.session_state.auction_state['winning_team'] = team_name
                 
                 # Notify about the bid placed
-                cols[i].write(f"{team_name} placed a bid of {new_bid_amount} Cr!")
+                st.write(f"{team_name} placed a bid of {new_bid_amount} Cr!")
             else:
                 cols[i].write(f"{team_name} cannot bid due to insufficient purse.")
 
 # Display current bid information if there is a winning team
-if (winning_team := st.session.state.auction.state.get("winning_team")) is not None:
-    current_bid = round(st.session.state['current_bid'], 1)
-    cols[0].write(f"Current Bid: {current_bid} Cr by {winning_team}")
+if (winning_team := st.session_state.auction_state.get("winning_team")) is not None:
+    current_bid = round(st.session_state.auction_state['current_bid'], 1)
+    st.write(f"Current Bid: {current_bid} Cr by {winning_team}")
 
 if (st.button("Undo Last Auction", key="undo_last_auction_button")):
     undo_last_auction()
 
 st.write("---")
 
-# Display teams' information in wider layout
+# Display teams' information
 team_cols = st.columns(3)
 for i, team_name in enumerate(teams):
     with team_cols[i]:
