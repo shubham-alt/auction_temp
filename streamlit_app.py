@@ -49,13 +49,14 @@ def display_available_players():
         st.write("No players left.")
 
 def start_auction():
-    if not st.session_state.auction_state["available_players"].empty:
+    # Select a player only if no player is selected
+    if st.session_state.auction_state["current_player"] is None and not st.session_state.auction_state["available_players"].empty:
         st.session_state.auction_state["current_player"] = st.session_state.auction_state["available_players"].sample(1).iloc[0]
         st.session_state.auction_state["current_bid"] = 2
         st.session_state.auction_state["winning_team"] = None
         st.write(f"Next Player: {st.session_state.auction_state['current_player']['Name']} (Base Price: 2 Cr)")
     else:
-        st.write("No more players available for auction.")
+        st.write(f"Current Player: {st.session_state.auction_state['current_player']['Name']}")
 
 def finalize_auction():
     if st.session_state.auction_state["winning_team"]:
@@ -97,6 +98,7 @@ if st.session_state.auction_state["current_player"] is not None:
     cols = st.columns(3)
     bid_placed = False
     for i, team_name in enumerate(teams):
+        # Prevent the winning team from placing a bid again
         if st.session_state.auction_state["winning_team"] != team_name:
             if cols[i].button(f"{team_name} Bid"):
                 st.session_state.auction_state["current_bid"] += 0.5
