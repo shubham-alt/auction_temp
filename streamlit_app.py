@@ -66,10 +66,10 @@ def start_auction():
     if st.session_state.auction_state["current_player"] is None and not st.session_state.auction_state["available_players"].empty:
         selected_player = st.session_state.auction_state["available_players"].sample(1).iloc[0]
         st.session_state.auction_state["current_player"] = selected_player
-        st.session_state.auction_state["current_bid"] = 2  # Set base price to 2 Cr
+        st.session_state.auction_state["current_bid"] = 1.5  # Set base price to 1.5 Cr
         st.session_state.auction_state["winning_team"] = None
         st.session_state.auction_state["bidding_teams"] = list(teams.keys())  # Reset bidding teams
-        st.write(f"Next Player: {selected_player['Name']} (Base Price: 2 Cr)")
+        st.write(f"Next Player: {selected_player['Name']} (Base Price: 1.5 Cr)")
     elif st.session_state.auction_state["current_player"] is not None:
         st.write(f"Current Player: {st.session_state.auction_state['current_player']['Name']}")
 
