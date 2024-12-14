@@ -105,10 +105,25 @@ def undo_last_auction():
 # Create Streamlit UI components
 st.title("Player Auction")
 
-# Display team details
-display_team_details()
+# Display teams first side by side
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.write("#### Mospher")
+    st.write(f"Budget: ₹{st.session_state.teams['Mospher']['budget']} cr")
+with col2:
+    st.write("#### Goku")
+    st.write(f"Budget: ₹{st.session_state.teams['Goku']['budget']} cr")
+with col3:
+    st.write("#### Maverick")
+    st.write(f"Budget: ₹{st.session_state.teams['Maverick']['budget']} cr")
 
-# Buttons for auction actions
+# Display team rosters
+display_team_rosters()
+
+# Display players yet to come for auction
+display_players_by_role()
+
+# Auction controls
 if st.session_state.current_player:
     col1, col2, col3 = st.columns(3)
 
@@ -155,8 +170,3 @@ else:
     if st.button("Start Auction"):
         start_auction()
 
-# Display players by role and remaining players
-display_players_by_role()
-
-# Display team rosters
-display_team_rosters()
