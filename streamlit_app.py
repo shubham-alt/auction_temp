@@ -82,17 +82,21 @@ def undo_last_auction():
 st.title("Player Auction")
 
 # Timer and Auction Status
-with st.empty() as timer_placeholder:
-    if st.session_state.current_player:
-        for _ in range(int(get_remaining_time())):
-            time_left = int(get_remaining_time())
-            if time_left <= 0:
-                finalize_auction()
-                break
-            timer_placeholder.markdown(f"**Time Remaining:** {time_left} seconds")
-            time.sleep(1)
-    else:
-        timer_placeholder.markdown("No player is currently being auctioned.")
+st.subheader("Auction Timer")
+timer_placeholder = st.empty()
+
+if st.session_state.current_player:
+    while get_remaining_time() > 0:
+        time_left = int(get_remaining_time())
+        timer_placeholder.markdown(f"**Time Remaining:** {time_left} seconds")
+        time.sleep(1)
+
+        # Check if player auction needs to be finalized when time runs out
+        if get_remaining_time() <= 0:
+            finalize_auction()
+            break
+else:
+    timer_placeholder.markdown("No player is currently being auctioned.")
 
 st.subheader("Current Auction")
 if st.session_state.current_player:
