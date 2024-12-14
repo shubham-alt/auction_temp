@@ -11,6 +11,13 @@ if not all(col in players_data.columns for col in required_columns):
     st.error("CSV file must contain columns: Name, Rating, Role")
     st.stop()
 
+# Function to get the next player
+def get_next_player():
+    available_players = players_data[~players_data['Name'].isin([p['Name'] for team in st.session_state.teams.values() for p in team['players']])]
+    if not available_players.empty:
+        return available_players.sample().iloc[0]
+    return None
+
 # Initialize auction state
 if 'teams' not in st.session_state:
     st.session_state.teams = {
@@ -19,18 +26,11 @@ if 'teams' not in st.session_state:
         'Maverick': {'budget': 120, 'players': []}
     }
 if 'current_player' not in st.session_state:
-    st.session_state.current_player = get_next_player()  # Get initial player
+    st.session_state.current_player = None
 if 'current_bid' not in st.session_state:
     st.session_state.current_bid = 2.0
 if 'last_auction' not in st.session_state:
     st.session_state.last_auction = None
-
-# Function to get the next player
-def get_next_player():
-    available_players = players_data[~players_data['Name'].isin([p['Name'] for team in st.session_state.teams.values() for p in team['players']])]
-    if not available_players.empty:
-        return available_players.sample().iloc[0]
-    return None
 
 # Auction logic
 def finalize_auction(winning_team):
@@ -47,12 +47,32 @@ def finalize_auction(winning_team):
         reset_auction()
 
 def reset_auction():
-    # Get the next player and reset bid amount
-    st.session_state.current_player = get_next_player()
+    # Resetting the auction state
+    for team in st.session_state.teams.values():
+        team['players'] = []
+        team['budget'] = 120  # Reset budget to initial value
+    st.session_state.current_player = None
     st.session_state.current_bid = 2.0
+    st.session_state.last_auction = None
+
+# Start auction function to initialize first player
+def start_auction():
+    st.session_state.current_player = get_next_player()
+    if st.session_state.current_player is None:
+        st.error("No players available for auction.")
+    else:
+        st.session_state.current_bid = 2.0
 
 # Display current auction information
 st.title("Player Auction")
+
+# Buttons to control auction flow
+if st.button("Start Auction"):
+    start_auction()
+
+if st.button("Restart Auction"):
+    reset_auction()
+
 st.write("Current Player: ", st.session_state.current_player['Name'] if st.session_state.current_player is not None else "No player available")
 st.write("Current Bid: ₹", st.session_state.current_bid)
 
@@ -76,7 +96,7 @@ with col3:
 
 # Finalizing auction button
 if st.button("Finalize Auction"):
-    winning_team = max(st.session_state.teams.keys(), key=lambda k: (st.session_state.current_bid if k in [team for team in ['Mospher', 'Goku', 'Maverick']] else 0))
+    winning_team = max(st.session_state.teams.keys(), key=lambda k: (st.session_state.current_bid if k in ['Mospher', 'Goku', 'Maverick'] else 0))
     finalize_auction(winning_team)
 
 # Next player button
