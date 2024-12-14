@@ -56,10 +56,12 @@ def display_available_players():
 def start_auction():
     """Start a new auction round by selecting a player."""
     if st.session_state.auction_state["current_player"] is None and not st.session_state.auction_state["available_players"].empty:
-        st.session_state.auction_state["current_player"] = st.session_state.auction_state["available_players"].sample(1).iloc[0]
+        # Select a random player from available players
+        selected_player = st.session_state.auction_state["available_players"].sample(1).iloc[0]
+        st.session_state.auction_state["current_player"] = selected_player
         st.session_state.auction_state["current_bid"] = 2
         st.session_state.auction_state["winning_team"] = None
-        st.write(f"Next Player: {st.session_state.auction_state['current_player']['Name']} (Base Price: 2 Cr)")
+        st.write(f"Next Player: {selected_player['Name']} (Base Price: 2 Cr)")
     else:
         current_player = st.session_state.auction_state["current_player"]
         if current_player is not None:
@@ -84,10 +86,10 @@ def finalize_auction():
         # Log auction history
         st.session_state.auction_state["auction_history"].append({"player": player, "team": winning_team, "price": price})
         
-        # Reset current player state
         reset_current_player()
         
         st.success(f"{player['Name']} sold to {winning_team} for {price} Cr")
+        
     else:
         handle_unsold_player()
 
@@ -131,7 +133,7 @@ def undo_last_auction():
 # Streamlit app layout
 st.title("Player Auction")
 
-if st.button("Start Auction"):
+if (start_button := st.button("Start Auction")) or (st.button("Finalize Auction") and finalize_auction()):
     start_auction()
 
 if (current_player := st.session_state.auction_state.get("current_player")) is not None:
@@ -146,22 +148,19 @@ if (current_player := st.session_state.auction_state.get("current_player")) is n
                 new_bid_amount = round(st.session_state.auction_state['current_bid'] + bid_amount_increment, 1)
                 
                 if new_bid_amount <= teams[team_name]["purse"]:  # Check if the team can afford the new bid
+                    # Update current bid and winning team
                     st.session_state.auction_state['current_bid'] = new_bid_amount
                     st.session_state.auction_state['winning_team'] = team_name
 
-                break
-
+# Display current bid information if there is a winning team
 if (winning_team := st.session_state.auction_state.get("winning_team")) is not None:
     current_bid = round(st.session_state.auction_state['current_bid'], 1)
     st.write(f"Current Bid: {current_bid} Cr by {winning_team}")
 
-# Finalize or pass on current auction state
-if st.button("Finalize Auction"):
+# Finalize auction action integrated with Start Auction button functionality.
+if start_button or (st.button("Finalize Auction") and finalize_auction()):
     finalize_auction()
 
-if (st.button("Next Player") or (st.button("Pass") and reset_current_player())):
-    reset_current_player()
-    
 if st.button("Undo Last Auction"):
     undo_last_auction()
 
