@@ -61,9 +61,6 @@ def start_auction():
     st.session_state.current_bid = 2  # Starting bid price
     st.session_state.highest_bidder = None
 
-    st.write(f"### Current Auction: {st.session_state.current_player['Name']} - {st.session_state.current_player['Role']}")
-    st.write(f"Starting bid: ₹{st.session_state.current_bid} cr")
-
 # Finalize auction for the current player
 def finalize_auction():
     if st.session_state.highest_bidder:
@@ -104,6 +101,11 @@ def undo_last_auction():
 
 # Create Streamlit UI components
 st.title("Player Auction")
+
+# Display current ongoing auction at the top
+if st.session_state.current_player is not None:
+    st.write(f"### Ongoing Auction: {st.session_state.current_player['Name']} - {st.session_state.current_player['Role']}")
+    st.write(f"Current Bid: ₹{st.session_state.current_bid} cr")
 
 # Display teams first side by side
 col1, col2, col3 = st.columns(3)
