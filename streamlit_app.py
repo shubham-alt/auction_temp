@@ -2,137 +2,161 @@ import streamlit as st
 import pandas as pd
 import random
 
-# Load initial player data
-player_data = pd.read_csv("players_data.csv")  # Ensure players_data.csv has columns: Name, Rating, Role
-player_data = player_data.sort_values(by=["Role", "Rating"], ascending=[True, False])
+# Load the player data
+players_data = pd.read_csv('players_data.csv')
 
-# Initialize session state variables
-if "auction_pool" not in st.session_state:
-    st.session_state.auction_pool = player_data.to_dict(orient="records")
-    st.session_state.teams = {"Mospher": [], "Goku": [], "Maverick": []}
-    st.session_state.team_purse = {"Mospher": 120, "Goku": 120, "Maverick": 120}
+# Initializing global variables
+if 'players' not in st.session_state:
+    st.session_state.players = players_data
+    st.session_state.teams = {
+        'Mospher': {'budget': 120, 'players': [], 'bidded': False},
+        'Goku': {'budget': 120, 'players': [], 'bidded': False},
+        'Maverick': {'budget': 120, 'players': [], 'bidded': False}
+    }
     st.session_state.current_player = None
-    st.session_state.current_bid = {"price": 0, "winner": None}
-    st.session_state.auction_history = []  # Store auction history for undo functionality
+    st.session_state.last_auction = None
+    st.session_state.unsold_players = []
 
-# Functions
-def start_new_auction():
-    """Start auction for a new player."""
-    if not st.session_state.auction_pool:
-        st.warning("Auction has ended! No more players in the pool.")
+# Function to pick the next player randomly
+def get_next_player():
+    available_players = st.session_state.players[~st.session_state.players['Name'].isin(
+        [p['Name'] for team in st.session_state.teams.values() for p in team['players']])]
+    if not available_players.empty:
+        return available_players.sample().iloc[0]
+    return None
+
+# Display current purse of each team
+def display_team_details():
+    st.write("### Team Budgets")
+    for team_name, team in st.session_state.teams.items():
+        st.write(f"{team_name}: ₹{team['budget']} cr")
+
+# Display players by role, sorted by rating
+def display_players_by_role():
+    st.write("### Players in Auction (Grouped by Role)")
+    remaining_players = st.session_state.players[~st.session_state.players['Name'].isin(
+        [p['Name'] for team in st.session_state.teams.values() for p in team['players']])]
+    if not remaining_players.empty:
+        sorted_players = remaining_players.sort_values(by=['Role', 'Rating'], ascending=[True, False])
+        st.dataframe(sorted_players[['Name', 'Role', 'Rating']])
+
+# Display each team's roster
+def display_team_rosters():
+    st.write("### Team Rosters")
+    for team_name, team in st.session_state.teams.items():
+        st.write(f"#### {team_name}")
+        if team['players']:
+            team_roster = pd.DataFrame(team['players'])
+            st.dataframe(team_roster[['Name', 'Role', 'Rating', 'Price']])
+        else:
+            st.write("No players bought yet.")
+
+# Start auction for the next player
+def start_auction():
+    st.session_state.current_player = get_next_player()
+    if st.session_state.current_player is None:
+        st.write("No more players to auction.")
         return
 
-    st.session_state.current_player = random.choice(st.session_state.auction_pool)
-    st.session_state.auction_pool.remove(st.session_state.current_player)
-    st.session_state.current_bid = {
-        "price": 2,  # Base price for every player
-        "winner": None,
-    }
+    st.session_state.current_bid = 2  # Starting bid price
+    st.session_state.highest_bidder = None
 
-def place_bid(bidder):
-    """Place a bid for the current player."""
-    if st.session_state.current_player and st.session_state.current_bid["winner"] != bidder:
-        next_bid = st.session_state.current_bid["price"] + 0.5
-        if st.session_state.team_purse[bidder] >= next_bid:
-            st.session_state.current_bid["price"] = next_bid
-            st.session_state.current_bid["winner"] = bidder
-        else:
-            st.error(f"{bidder} does not have enough funds for this bid!")
+    st.write(f"### Current Auction: {st.session_state.current_player['Name']} - {st.session_state.current_player['Role']}")
+    st.write(f"Starting bid: ₹{st.session_state.current_bid} cr")
 
-
+# Finalize auction for the current player
 def finalize_auction():
-    """Finalize the auction for the current player."""
-    if st.session_state.current_player:
-        winner = st.session_state.current_bid["winner"]
-        if winner:
-            # Deduct funds and add player to the winning team
-            st.session_state.team_purse[winner] -= st.session_state.current_bid["price"]
-            st.session_state.teams[winner].append({
-                **st.session_state.current_player,
-                "price": st.session_state.current_bid["price"],
-            })
-            st.success(f"{st.session_state.current_player['Name']} sold to {winner} for ₹{st.session_state.current_bid['price']} crore.")
-        else:
-            st.warning(f"{st.session_state.current_player['Name']} remains unsold.")
-
-        # Save auction history for undo functionality
-        st.session_state.auction_history.append({
-            "player": st.session_state.current_player,
-            "bid": st.session_state.current_bid,
+    if st.session_state.highest_bidder:
+        team = st.session_state.teams[st.session_state.highest_bidder]
+        team['players'].append({
+            'Name': st.session_state.current_player['Name'],
+            'Role': st.session_state.current_player['Role'],
+            'Rating': st.session_state.current_player['Rating'],
+            'Price': st.session_state.current_bid
         })
+        team['budget'] -= st.session_state.current_bid
+        st.write(f"{st.session_state.current_player['Name']} has been sold to {st.session_state.highest_bidder} for ₹{st.session_state.current_bid} cr!")
+    else:
+        st.session_state.unsold_players.append(st.session_state.current_player['Name'])
+        st.write(f"{st.session_state.current_player['Name']} is unsold.")
 
-        # Reset current auction
-        st.session_state.current_player = None
-        st.session_state.current_bid = {"price": 0, "winner": None}
+    # Reset bids for all teams
+    for team in st.session_state.teams.values():
+        team['bidded'] = False
 
+    st.session_state.last_auction = st.session_state.current_player
+    st.session_state.current_player = None
 
+# Undo the last auction
 def undo_last_auction():
-    """Undo the last auction and restore the player to the pool."""
-    if st.session_state.auction_history:
-        last_auction = st.session_state.auction_history.pop()
-        player = last_auction["player"]
-        bid = last_auction["bid"]
+    if st.session_state.last_auction:
+        last_player = st.session_state.last_auction
+        # Return the budget and remove player from the team
+        for team in st.session_state.teams.values():
+            for player in team['players']:
+                if player['Name'] == last_player['Name']:
+                    team['players'].remove(player)
+                    team['budget'] += player['Price']
+                    break
+        st.session_state.last_auction = None
+        st.session_state.current_player = last_player
+        st.write(f"Undid last auction for {last_player['Name']}.")
 
-        if bid["winner"]:
-            winner = bid["winner"]
-            st.session_state.team_purse[winner] += bid["price"]
-            st.session_state.teams[winner] = [p for p in st.session_state.teams[winner] if p["Name"] != player["Name"]]
+# Create Streamlit UI components
+st.title("Player Auction")
 
-        st.session_state.auction_pool.append(player)
-        st.info(f"Undid auction for {player['Name']}. Player restored to the pool.")
+# Display team details
+display_team_details()
 
-# Sidebar: Team Purse and Teams
-st.sidebar.header("Team Information")
-st.sidebar.subheader("Team Purse Remaining")
-for team, purse in st.session_state.team_purse.items():
-    st.sidebar.markdown(f"**{team}:** ₹{purse} crore")
-
-st.sidebar.subheader("Teams")
-for team, players in st.session_state.teams.items():
-    st.sidebar.markdown(f"### {team}")
-    team_df = pd.DataFrame(players).sort_values(by="Role", ascending=True)
-    for role, grouped_players in team_df.groupby("Role"):
-        st.sidebar.markdown(f"**{role}:**")
-        for _, player in grouped_players.iterrows():
-            st.sidebar.markdown(f"- {player['Name']} (₹{player['price']} crore)")
-
-# Main Area
-st.title("Player Auction System")
-
+# Buttons for auction actions
 if st.session_state.current_player:
-    st.header("Current Auction")
-    player = st.session_state.current_player
-    st.markdown(f"**Player:** {player['Name']} ({player['Role']})")
-    st.markdown(f"**Rating:** {player['Rating']}")
-    st.markdown(f"**Current Bid:** ₹{st.session_state.current_bid['price']} crore by {st.session_state.current_bid['winner'] or 'None'}")
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        if not st.session_state.teams['Mospher']['bidded']:
+            if st.button("Mospher Bid"):
+                st.session_state.current_bid += 0.5
+                st.session_state.highest_bidder = 'Mospher'
+                st.session_state.teams['Mospher']['bidded'] = True
+
+    with col2:
+        if not st.session_state.teams['Goku']['bidded']:
+            if st.button("Goku Bid"):
+                st.session_state.current_bid += 0.5
+                st.session_state.highest_bidder = 'Goku'
+                st.session_state.teams['Goku']['bidded'] = True
+
+    with col3:
+        if not st.session_state.teams['Maverick']['bidded']:
+            if st.button("Maverick Bid"):
+                st.session_state.current_bid += 0.5
+                st.session_state.highest_bidder = 'Maverick'
+                st.session_state.teams['Maverick']['bidded'] = True
+
+    # Finalize auction
+    if st.button("Finalize Auction"):
+        finalize_auction()
+
+    # Next player button
+    if st.button("Next Player"):
+        start_auction()
+
+    # Pass button
+    if st.button("Pass"):
+        st.session_state.unsold_players.append(st.session_state.current_player['Name'])
+        st.session_state.current_player = None
+
+    # Undo last auction button
+    if st.button("Undo Last Player Auction"):
+        undo_last_auction()
+
 else:
-    st.markdown("No player is currently being auctioned.")
+    st.write("No player is currently up for auction.")
+    if st.button("Start Auction"):
+        start_auction()
 
-# Buttons for bidding and actions
-st.subheader("Actions")
-col1, col2, col3, col4, col5 = st.columns(5)
+# Display players by role and remaining players
+display_players_by_role()
 
-if col1.button("Mospher Bid"):
-    place_bid("Mospher")
-
-if col2.button("Goku Bid"):
-    place_bid("Goku")
-
-if col3.button("Maverick Bid"):
-    place_bid("Maverick")
-
-if col4.button("Finalize Auction"):
-    finalize_auction()
-
-if col5.button("Undo Last Auction"):
-    undo_last_auction()
-
-if st.button("Next Player"):
-    start_new_auction()
-
-# Display remaining players in the auction pool
-st.subheader("Players Yet to Be Auctioned")
-pool_df = pd.DataFrame(st.session_state.auction_pool).sort_values(by=["Role", "Rating"], ascending=[True, False])
-for role, grouped_players in pool_df.groupby("Role"):
-    st.markdown(f"**{role}:**")
-    st.dataframe(grouped_players[["Name", "Rating"]])
+# Display team rosters
+display_team_rosters()
