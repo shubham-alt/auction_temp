@@ -162,6 +162,11 @@ if (st.button("Finalize Auction", key="finalize_auction_button")):
 # Prevent further bid from the winning team
 if (current_player := st.session_state.auction_state.get("current_player")) is not None:
     cols = st.columns(3)
+
+    st.write(f"**Current Player**: {current_player['Name']}")
+    st.write(f"**Role**: {current_player['Role']}")
+    st.write(f"**Rating**: {current_player['Rating']}")
+    st.write(f"**Current Bid**: {st.session_state.auction_state['current_bid']} Cr")
     
     for i, team_name in enumerate(teams):
         # Ensure the team's bid button stays visible for all teams
