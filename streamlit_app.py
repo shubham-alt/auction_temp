@@ -74,8 +74,13 @@ def start_auction():
         st.session_state.auction_state["current_bid"] = 1.5  # Set base price to 1.5 Cr
         st.session_state.auction_state["winning_team"] = None
         st.write(f"Next Player: {selected_player['Name']} (Base Price: 1.5 Cr)")
+        st.write(f"**Role**: {selected_player['Role']}")
+        st.write(f"**Rating**: {selected_player['Rating']}")
     elif st.session_state.auction_state["current_player"] is not None:
-        st.write(f"Current Player: {st.session_state.auction_state['current_player']['Name']}")
+        current_player = st.session_state.auction_state["current_player"]
+        st.write(f"Current Player: {current_player['Name']}")
+        st.write(f"**Role**: {current_player['Role']}")
+        st.write(f"**Rating**: {current_player['Rating']}")
 
 def finalize_auction():
     """Finalize the auction for the current player."""
@@ -98,10 +103,11 @@ def finalize_auction():
         
         reset_current_player()
         
-        st.success(f"{player['Name']} sold to {winning_team} for {price} Cr")
+        st.success(f"{player['Name']} ({player['Role']}, Rating: {player['Rating']}) sold to {winning_team} for {price} Cr")
         
     else:
         handle_unsold_player()
+
 
 def reset_current_player():
     """Reset the current player and bid state."""
