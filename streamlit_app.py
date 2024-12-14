@@ -1,147 +1,193 @@
-import streamlit as st
 import pandas as pd
 import random
 import time
+from IPython.display import display, clear_output
+from ipywidgets import Button, HBox, VBox, Output
+import threading
 
-# Load player data
-player_data = pd.read_csv("players_data.csv")  # File must have columns: Name, Rating, Role
+# Mock player data for testing
+player_data = pd.DataFrame([
+    {"name": "Player A", "role": "Batsman", "rating": 88},
+    {"name": "Player B", "role": "Bowler", "rating": 84},
+    {"name": "Player C", "role": "All-Rounder", "rating": 92},
+    {"name": "Player D", "role": "Wicketkeeper", "rating": 80},
+    {"name": "Player E", "role": "Batsman", "rating": 76},
+])
 
-# Initialize state
-if "auction_pool" not in st.session_state:
-    st.session_state.auction_pool = player_data.to_dict(orient="records")
-    st.session_state.teams = {"Mospher": [], "Goku": [], "Maverick": []}
-    st.session_state.team_purse = {"Mospher": 120, "Goku": 120, "Maverick": 120}
-    st.session_state.current_player = None
-    st.session_state.current_bid = {"price": 0, "winner": None}
-    st.session_state.timer_start = None
-    st.session_state.timer_duration = 15
-    st.session_state.auction_history = []
+# Sort players by role and rating
+player_data.sort_values(by=["role", "rating"], ascending=[True, False], inplace=True)
 
-# Helper functions
+# Auction state
+auction_pool = player_data.to_dict(orient="records")
+teams = {"Ayush": [], "Shobhit": [], "Shubham": []}
+team_purse = {"Ayush": 120, "Shobhit": 120, "Shubham": 120}  # Initial purse for each team
+current_player = None
+current_bid = {"price": 0, "winner": None}
+auction_running = False
+timer_start = None
+timer_duration = 15
+
+# Outputs
+output = Output()
+summary_output = Output()
+teams_output = Output()
+
+# Buttons
+ayush_button = Button(description="Ayush Bid")
+shobhit_button = Button(description="Shobhit Bid")
+shubham_button = Button(description="Shubham Bid")
+pass_button = Button(description="Pass")
+next_player_button = Button(description="Start Auction")
+
+# Functions
 def reset_timer():
-    st.session_state.timer_start = time.time()
+    global timer_start
+    timer_start = time.time()
 
 def get_remaining_time():
-    if st.session_state.timer_start:
-        elapsed = time.time() - st.session_state.timer_start
-        return max(0, st.session_state.timer_duration - elapsed)
-    return st.session_state.timer_duration
+    if timer_start:
+        elapsed = time.time() - timer_start
+        return max(0, timer_duration - elapsed)
+    return timer_duration
 
 def start_new_auction():
-    if not st.session_state.auction_pool:
-        st.error("Auction has ended! No more players in the pool.")
+    """Start a new auction for a player."""
+    global current_player, current_bid, auction_running
+    if auction_running:
+        with output:
+            clear_output(wait=True)
+            print("Auction already running.")
+        return
+    
+    if not auction_pool:
+        with output:
+            clear_output(wait=True)
+            print("Auction has ended! No more players in the pool.")
         return
 
-    st.session_state.current_player = random.choice(st.session_state.auction_pool)
-    st.session_state.auction_pool.remove(st.session_state.current_player)
+    current_player = random.choice(auction_pool)
+    auction_pool.remove(current_player)
 
-    st.session_state.current_bid["price"] = 2  # Base price
-    st.session_state.current_bid["winner"] = None
+    # Set initial bid price based on rating
+    current_bid["price"] = (
+        2 if current_player["rating"] > 85 else
+        1.5 if current_player["rating"] > 80 else 1
+    )
+    current_bid["winner"] = None
     reset_timer()
+    auction_running = True
+    start_auction_thread()  # Start the live auction thread
+    update_display()
 
-def place_bid(team):
-    if st.session_state.current_player:
-        next_bid = st.session_state.current_bid["price"] + 0.5
-        if st.session_state.team_purse[team] >= next_bid and st.session_state.current_bid["winner"] != team:
-            st.session_state.current_bid["price"] = next_bid
-            st.session_state.current_bid["winner"] = team
-            reset_timer()
-        else:
-            st.warning(f"{team} cannot bid. Insufficient funds or current highest bidder!")
+def place_bid(bidder):
+    """Place a bid for the current player."""
+    global current_bid, team_purse
+    if not auction_running or current_player is None:
+        with output:
+            print("No auction is running.")
+        return
+    
+    next_bid = current_bid["price"] + 0.5
+    if team_purse[bidder] >= next_bid:
+        current_bid["price"] = next_bid
+        current_bid["winner"] = bidder
+        reset_timer()  # Reset the timer after a successful bid
+    else:
+        with output:
+            print(f"{bidder} does not have enough funds for this bid!")
+    update_display()
+
+def pass_bid():
+    finalize_auction()
 
 def finalize_auction():
-    current_player = st.session_state.current_player
-    current_bid = st.session_state.current_bid
+    """Finalize the auction for the current player."""
+    global current_player, current_bid, team_purse, auction_running
+    auction_running = False
+    if current_player is None:
+        with output:
+            clear_output(wait=True)
+            print("No player to finalize.")
+        return
 
     if current_bid["winner"]:
         winner = current_bid["winner"]
-        st.session_state.team_purse[winner] -= current_bid["price"]
-        st.session_state.teams[winner].append({**current_player, "price": current_bid["price"]})
-        st.success(f"{current_player['Name']} sold to {winner} for ₹{current_bid['price']} crore.")
+        team_purse[winner] -= current_bid["price"]
+        teams[winner].append({**current_player, "price": current_bid["price"]})
+        with output:
+            print(f"{current_player['name']} won by {winner} for ₹{current_bid['price']} crore.")
     else:
-        st.warning(f"{current_player['Name']} remains unsold.")
+        with output:
+            print(f"{current_player['name']} remains unsold.")
 
-    st.session_state.current_player = None
-    st.session_state.current_bid = {"price": 0, "winner": None}
+    current_player = None
+    current_bid = {"price": 0, "winner": None}
+    update_summary()
+    update_teams()
 
-def pass_player():
-    finalize_auction()
+def update_display():
+    """Update the auction display."""
+    with output:
+        clear_output(wait=True)
+        if current_player:
+            print(f"Auctioning: {current_player['name']} ({current_player['role']})")
+            print(f"Rating: {current_player['rating']}")
+            print(f"Current Bid: ₹{current_bid['price']} crore by {current_bid['winner'] or 'None'}")
+            print(f"Time Remaining: {int(get_remaining_time())} seconds")
+        else:
+            print("No player is currently being auctioned.")
+        print("\nTeam Purse Remaining:")
+        for team, purse in team_purse.items():
+            print(f"{team}: ₹{purse} crore")
 
-def undo_last_auction():
-    if st.session_state.auction_history:
-        last_auction = st.session_state.auction_history.pop()
-        if last_auction["winner"] != "Unsold":
-            st.session_state.team_purse[last_auction["winner"]] += last_auction["price"]
-            st.session_state.teams[last_auction["winner"]].remove(last_auction["player"])
-        st.session_state.auction_pool.append(last_auction["player"])
-        st.success("Last auction undone.")
-    else:
-        st.warning("No auction to undo.")
+def update_summary():
+    """Update the summary of available players."""
+    with summary_output:
+        clear_output(wait=True)
+        print("Players in Auction Pool:")
+        pool_df = pd.DataFrame(auction_pool).sort_values(by=["role", "rating"], ascending=[True, False])
+        display(pool_df[["name", "role", "rating"]])
 
-# UI Layout
-st.title("Player Auction")
+def update_teams():
+    """Update the teams and their players."""
+    with teams_output:
+        clear_output(wait=True)
+        print("Teams and Their Players:")
+        for team, players in teams.items():
+            print(f"\n{team}  Remaining Purse: ₹{team_purse[team]} crore")
+            for player in players:
+                print(f"  {player['name']} (₹{player['price']} crore)")
 
-# Timer and Auction Status
-st.subheader("Auction Timer")
-timer_placeholder = st.empty()
-
-if st.session_state.current_player:
-    while get_remaining_time() > 0:
-        time_left = int(get_remaining_time())
-        timer_placeholder.markdown(f"**Time Remaining:** {time_left} seconds")
-        time.sleep(1)
-
-        # Check if player auction needs to be finalized when time runs out
-        if get_remaining_time() <= 0:
+def auction_loop():
+    """Runs the auction logic in a background thread."""
+    while auction_running:
+        remaining_time = get_remaining_time()
+        if remaining_time <= 0:
             finalize_auction()
             break
-else:
-    timer_placeholder.markdown("No player is currently being auctioned.")
+        time.sleep(1)
+        update_display()
 
-st.subheader("Current Auction")
-if st.session_state.current_player:
-    st.write(f"**Player:** {st.session_state.current_player['Name']} ({st.session_state.current_player['Role']})")
-    st.write(f"**Rating:** {st.session_state.current_player['Rating']}")
-    st.write(f"**Current Bid:** ₹{st.session_state.current_bid['price']} crore by {st.session_state.current_bid['winner'] or 'None'}")
+def start_auction_thread():
+    """Start the auction in a separate thread."""
+    thread = threading.Thread(target=auction_loop, daemon=True)
+    thread.start()
 
-# Buttons
-col1, col2, col3, col4, col5 = st.columns(5)
-with col1:
-    if st.button("Mospher Bid"):
-        place_bid("Mospher")
-with col2:
-    if st.button("Goku Bid"):
-        place_bid("Goku")
-with col3:
-    if st.button("Maverick Bid"):
-        place_bid("Maverick")
-with col4:
-    if st.button("Pass"):
-        pass_player()
-with col5:
-    if st.button("Next Player"):
-        start_new_auction()
+# Button actions
+ayush_button.on_click(lambda _: place_bid("Ayush"))
+shobhit_button.on_click(lambda _: place_bid("Shobhit"))
+shubham_button.on_click(lambda _: place_bid("Shubham"))
+pass_button.on_click(lambda _: pass_bid())
+next_player_button.on_click(lambda _: start_new_auction())
 
-if st.button("Undo Last Auction"):
-    undo_last_auction()
+# Display layout
+button_layout = HBox([ayush_button, shobhit_button, shubham_button, pass_button])
+auction_info_layout = VBox([output, button_layout, next_player_button])
+summary_layout = VBox([auction_info_layout, HBox([summary_output, teams_output])])
 
-# Display Team Information
-st.subheader("Team Status")
-team_cols = st.columns(3)
-for i, (team, players) in enumerate(st.session_state.teams.items()):
-    with team_cols[i]:
-        st.write(f"**{team} (Remaining Purse: ₹{st.session_state.team_purse[team]} crore)**")
-        if players:
-            df = pd.DataFrame(players).sort_values(by=["Role", "Rating"], ascending=[True, False])
-            st.table(df[["Name", "Role", "Rating", "price"]])
-        else:
-            st.write("No players.")
+# Show the app
+display(summary_layout)
 
-# Remaining Players
-st.subheader("Remaining Players")
-remaining_players = pd.DataFrame(st.session_state.auction_pool).sort_values(by=["Role", "Rating"], ascending=[True, False])
-for role, group in remaining_players.groupby("Role"):
-    st.write(f"**{role}**")
-    st.table(group[["Name", "Rating"]])
-
-
+# Initial updates
+update_summary()
+update_teams()
