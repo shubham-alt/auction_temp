@@ -134,10 +134,10 @@ def undo_last_auction():
 st.title("Player Auction")
 
 # Adding unique keys to buttons to avoid duplicate IDs error
-if (st.button("Start Auction", key="start_auction_button")):
+if st.button("Start Auction", key="start_auction_button"):
     start_auction()
 
-if (st.button("Finalize Auction", key="finalize_auction_button")):
+if st.button("Finalize Auction", key="finalize_auction_button"):
     finalize_auction()
 
 if (current_player := st.session_state.auction_state.get("current_player")) is not None:
@@ -161,7 +161,7 @@ if (winning_team := st.session_state.auction_state.get("winning_team")) is not N
     current_bid = round(st.session_state.auction_state['current_bid'], 1)
     st.write(f"Current Bid: {current_bid} Cr by {winning_team}")
 
-if (st.button("Undo Last Auction", key="undo_last_auction_button")):
+if st.button("Undo Last Auction", key="undo_last_auction_button"):
     undo_last_auction()
 
 st.write("---")
