@@ -33,7 +33,8 @@ if "auction_state" not in st.session_state:
 # Initialize bidding teams
 def display_team_info(team_name):
     """Display team information including players and purse."""
-    st.subheader(team_name)
+    st.subheader(f"{team_name} - Purse: {teams[team_name]['purse']} Cr", anchor=team_name)
+    
     team_players = pd.DataFrame(teams[team_name]["players"])
     
     if not team_players.empty:
@@ -43,8 +44,8 @@ def display_team_info(team_name):
             st.dataframe(role_players[["Name", "Rating", "Selling Price"]])
     else:
         st.write("No players yet.")
-    
-    st.write(f"Purse: {teams[team_name]['purse']} Cr")
+        
+    st.markdown(f"---")
 
 def display_available_players():
     """Display players still available for bidding."""
@@ -158,32 +159,34 @@ if (current_player := st.session_state.auction_state.get("current_player")) is n
     
     for i, team_name in enumerate(teams):
         # Ensure the team's bid button stays visible for all teams
-        if cols[i].button(f"{team_name} Bid", key=f"bid_button_{team_name}"):
-            # If the team already has the current bid, prevent them from bidding
-            if st.session_state.auction_state['winning_team'] == team_name:
-                cols[i].write(f"{team_name} has already placed the highest bid of {st.session_state.auction_state['current_bid']} Cr!")
-                continue  # Skip this team
-            
-            bid_amount_increment = 0.5
-            new_bid_amount = round(st.session_state.auction_state['current_bid'] + bid_amount_increment, 1)
-            
-            if new_bid_amount <= teams[team_name]["purse"]:  # Ensure the team can afford the bid
-                # Update current bid and set the winning team
-                if new_bid_amount > st.session_state.auction_state['current_bid']:
-                    # Only update winning team if new bid exceeds current bid
-                    st.session_state.auction_state['current_bid'] = new_bid_amount
-                    st.session_state.auction_state['winning_team'] = team_name
+        with cols[i]:
+            st.markdown(f"<div style='background-color: {'#FFD700' if team_name == 'Mospher' else '#1E90FF' if team_name == 'Goku' else '#32CD32'}; padding: 10px;'>", unsafe_allow_html=True)
+            if st.button(f"{team_name} Bid", key=f"bid_button_{team_name}"):
+                # If the team already has the current bid, prevent them from bidding
+                if st.session_state.auction_state['winning_team'] == team_name:
+                    st.write(f"{team_name} has already placed the highest bid of {st.session_state.auction_state['current_bid']} Cr!")
+                    continue  # Skip this team
                 
-                # Notify about the bid placed
-                st.write(f"{team_name} placed a bid of {new_bid_amount} Cr!")
-            else:
-                cols[i].write(f"{team_name} cannot bid due to insufficient purse.")
-
+                bid_amount_increment = 0.5
+                new_bid_amount = round(st.session_state.auction_state['current_bid'] + bid_amount_increment, 1)
+                
+                if new_bid_amount <= teams[team_name]["purse"]:  # Ensure the team can afford the bid
+                    # Update current bid and set the winning team
+                    if new_bid_amount > st.session_state.auction_state['current_bid']:
+                        # Only update winning team if new bid exceeds current bid
+                        st.session_state.auction_state['current_bid'] = new_bid_amount
+                        st.session_state.auction_state['winning_team'] = team_name
+                    
+                    # Notify about the bid placed
+                    st.write(f"{team_name} placed a bid of {new_bid_amount} Cr!")
+                else:
+                    st.write(f"{team_name} cannot bid due to insufficient purse.")
+            st.markdown(f"</div>", unsafe_allow_html=True)
 
 # Display current bid information if there is a winning team
 if (winning_team := st.session_state.auction_state.get("winning_team")) is not None:
     current_bid = round(st.session_state.auction_state['current_bid'], 1)
-    st.write(f"Current Bid: {current_bid} Cr by {winning_team}")
+    st.markdown(f"**Current Bid:** {current_bid} Cr by **{winning_team}**", unsafe_allow_html=True)
 
 if (st.button("Undo Last Auction", key="undo_last_auction_button")):
     undo_last_auction()
