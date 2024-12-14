@@ -28,7 +28,7 @@ def start_auction():
             st.write("No more players available for auction.")
 
 def finalize_auction():
-    if st.session_state.auction_state["winning_team"]:
+    if st.session_state.auction_state["winning_team"]:  # Ensure closing parenthesis here
         # ... (rest of finalize_auction remains the same)
     else:
         # ... (rest of finalize_auction remains the same)
