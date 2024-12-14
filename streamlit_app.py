@@ -33,32 +33,40 @@ if "bidding_teams" not in st.session_state.auction_state:
     st.session_state.auction_state["bidding_teams"] = list(teams.keys())  # Initialize bidding teams
 
 
-
 def display_team_info(team_name):
-    # Function to display team info (e.g., players, purse)
-    st.subheader(f"{team_name} Team")
+    """Display team information including players and purse."""
+    st.subheader(team_name)
     team_players = pd.DataFrame(teams[team_name]["players"])
+    
     if not team_players.empty:
-        st.dataframe(team_players[["Name", "Role", "Rating", "Selling Price"]])
+        for role in team_players["Role"].unique():
+            st.write(f"**{role}**")
+            role_players = team_players[team_players["Role"] == role].sort_values(by="Rating", ascending=False)
+            st.dataframe(role_players[["Name", "Rating", "Selling Price"]])
     else:
         st.write("No players yet.")
+    
     st.write(f"Purse: {teams[team_name]['purse']} Cr")
 
 def display_available_players():
-    # Function to display players still available for bidding
+    """Display players still available for bidding."""
     st.subheader("Players Still Available")
     available_players = st.session_state.auction_state["available_players"]
+    
     if not available_players.empty:
-        st.dataframe(available_players[["Name", "Role", "Rating"]])
+        for role in available_players["Role"].unique():
+            st.write(f"**{role}**")
+            role_players = available_players[available_players["Role"] == role].sort_values(by="Rating", ascending=False)
+            st.dataframe(role_players[["Name", "Rating"]])
     else:
         st.write("No players left.")
 
 def start_auction():
-    """Start a new auction round."""
+    """Start a new auction round by selecting a player."""
     if st.session_state.auction_state["current_player"] is None and not st.session_state.auction_state["available_players"].empty:
         selected_player = st.session_state.auction_state["available_players"].sample(1).iloc[0]
         st.session_state.auction_state["current_player"] = selected_player
-        st.session_state.auction_state["current_bid"] = 2
+        st.session_state.auction_state["current_bid"] = 2  # Set base price to 2 Cr
         st.session_state.auction_state["winning_team"] = None
         st.session_state.auction_state["bidding_teams"] = list(teams.keys())  # Reset bidding teams
         st.write(f"Next Player: {selected_player['Name']} (Base Price: 2 Cr)")
@@ -66,7 +74,7 @@ def start_auction():
         st.write(f"Current Player: {st.session_state.auction_state['current_player']['Name']}")
 
 def finalize_auction():
-    """Finalize the auction."""
+    """Finalize the auction for the current player."""
     winning_team = st.session_state.auction_state["winning_team"]
     if winning_team:
         player = st.session_state.auction_state["current_player"]
@@ -81,13 +89,14 @@ def finalize_auction():
         handle_unsold_player()
 
 def reset_current_player():
+    """Reset the current player and bid state."""
     st.session_state.auction_state["current_player"] = None
     st.session_state.auction_state["current_bid"] = 0
     st.session_state.auction_state["winning_team"] = None
     st.session_state.auction_state["bidding_teams"] = list(teams.keys())  # Reset bidding teams
 
 def handle_unsold_player():
-    """Handle the case where a player goes unsold."""
+    """Handle case when no bids are placed for the current player."""
     player = st.session_state.auction_state["current_player"]
     if player is not None:
         st.session_state.auction_state["auction_history"].append({"player": player, "team": None, "price": 0})
@@ -100,51 +109,4 @@ def undo_last_auction():
         last_auction = st.session_state.auction_state["auction_history"].pop()
         if last_auction.get("team"):
             teams[last_auction["team"]]["purse"] += last_auction["price"]
-            teams[last_auction["team"]]["players"].pop()
-            last_player_df = pd.DataFrame([last_auction["player"]])
-            st.session_state.auction_state["available_players"] = pd.concat([st.session_state.auction_state["available_players"], last_player_df], ignore_index=True)
-        reset_current_player()
-        st.success("Last auction undone.")
-    else:
-        st.warning("No auctions to undo.")
-
-# Streamlit app layout
-st.title("Player Auction")
-
-if st.button("Start Auction", key="start_auction_button"):
-    start_auction()
-
-if st.button("Finalize Auction", key="finalize_auction_button"):
-    finalize_auction()
-
-if (current_player := st.session_state.auction_state.get("current_player")) is not None:
-    cols = st.columns(3)
-    bidding_teams = st.session_state.auction_state["bidding_teams"]
-    for i, team_name in enumerate(teams):
-        if team_name in bidding_teams:  # Only show bid buttons for bidding teams
-            if cols[i].button(f"{team_name} Bid", key=f"bid_button_{team_name}"):
-                bid_amount_increment = 0.5
-                new_bid_amount = round(st.session_state.auction_state['current_bid'] + bid_amount_increment, 1)
-                if new_bid_amount <= teams[team_name]["purse"]:
-                    st.session_state.auction_state['current_bid'] = new_bid_amount
-                    st.session_state.auction_state['winning_team'] = team_name
-                    st.session_state.auction_state["bidding_teams"] = [t for t in bidding_teams if t != team_name]  # Remove current bidder
-
-# Display current bid information
-if (winning_team := st.session_state.auction_state.get("winning_team")) is not None:
-    current_bid = round(st.session_state.auction_state['current_bid'], 1)
-    st.write(f"Current Bid: {current_bid} Cr by {winning_team}")
-
-if st.button("Undo Last Auction", key="undo_last_auction_button"):
-    undo_last_auction()
-
-st.write("---")
-
-# Display teams' information
-team_cols = st.columns(3)
-for i, team_name in enumerate(teams):
-    with team_cols[i]:
-        display_team_info(team_name)
-
-st.write("---")
-display_available_players()
+            teams[last_auctio
