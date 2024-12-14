@@ -141,3 +141,17 @@ if (st.button("Finalize Auction", key="finalize_auction_button")):
     finalize_auction()
 
 if (current_player := st.session_state.auction_state.get("current_player")) is not None:
+    cols = st.columns(3)
+    
+    for i, team_name in enumerate(teams):
+        # Prevent the winning team from placing a bid again
+        if team_name != (st.session_state.auction_state.get("winning_team")):
+            if cols[i].button(f"{team_name} Bid", key=f"bid_button_{team_name}"):
+                # Increase bid and set winning team
+                bid_amount_increment = 0.5
+                new_bid_amount = round(st.session_state.auction_state['current_bid'] + bid_amount_increment, 1)
+                
+                if new_bid_amount <= teams[team_name]["purse"]:  # Check if the team can afford the new bid
+                    # Update current bid and winning team
+                    st.session_state.auction_state['current_bid'] = new_bid_amount
+                    st.session_state.auction_state['winning_team'] = team_name
