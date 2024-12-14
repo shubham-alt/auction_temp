@@ -116,6 +116,10 @@ def handle_unsold_player():
         # Log unsold player in auction history
         st.session_state.auction_state["auction_history"].append({"player": player, "team": None, "price": 0})
         
+        # Remove the player from the available players list permanently
+        st.session_state.auction_state["available_players"] = \
+            st.session_state.auction_state["available_players"][st.session_state.auction_state["available_players"]["Name"] != player["Name"]]
+        
         reset_current_player()
         
         st.warning(f"{player['Name']} goes unsold")
