@@ -152,18 +152,24 @@ if (st.button("Start Auction", key="start_auction_button")):
 if (st.button("Finalize Auction", key="finalize_auction_button")):
     finalize_auction()
 
+# Prevent further bid from the winning team
 if (current_player := st.session_state.auction_state.get("current_player")) is not None:
     cols = st.columns(3)
     
     for i, team_name in enumerate(teams):
         # Ensure the team's bid button stays visible for all teams
         if cols[i].button(f"{team_name} Bid", key=f"bid_button_{team_name}"):
+            # If the team already has the current bid, prevent them from bidding
+            if st.session_state.auction_state['winning_team'] == team_name:
+                cols[i].write(f"{team_name} has already placed the highest bid of {st.session_state.auction_state['current_bid']} Cr!")
+                continue  # Skip this team
+            
             bid_amount_increment = 0.5
             new_bid_amount = round(st.session_state.auction_state['current_bid'] + bid_amount_increment, 1)
             
             if new_bid_amount <= teams[team_name]["purse"]:  # Ensure the team can afford the bid
                 # Update current bid and set the winning team
-                if new_bid_amount > (st.session_state.auction_state['current_bid']):
+                if new_bid_amount > st.session_state.auction_state['current_bid']:
                     # Only update winning team if new bid exceeds current bid
                     st.session_state.auction_state['current_bid'] = new_bid_amount
                     st.session_state.auction_state['winning_team'] = team_name
@@ -172,6 +178,7 @@ if (current_player := st.session_state.auction_state.get("current_player")) is n
                 st.write(f"{team_name} placed a bid of {new_bid_amount} Cr!")
             else:
                 cols[i].write(f"{team_name} cannot bid due to insufficient purse.")
+
 
 # Display current bid information if there is a winning team
 if (winning_team := st.session_state.auction_state.get("winning_team")) is not None:
