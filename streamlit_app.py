@@ -5,6 +5,12 @@ import random
 # Load player data from CSV file
 players_data = pd.read_csv('players_data.csv')  # Ensure the CSV has columns: Name, Rating, Role
 
+# Check if the required columns exist in the CSV
+required_columns = ['Name', 'Rating', 'Role']
+if not all(col in players_data.columns for col in required_columns):
+    st.error("CSV file must contain columns: Name, Rating, Role")
+    st.stop()
+
 # Initialize auction state
 if 'teams' not in st.session_state:
     st.session_state.teams = {
@@ -93,8 +99,13 @@ if st.button("Undo Last Auction"):
 # Display teams and their players
 for team_name, team_info in st.session_state.teams.items():
     st.write(f"### {team_name} - Budget: ₹{team_info['budget']}")
-    players_df = pd.DataFrame(team_info['players']).sort_values(by='Rating', ascending=False)
+    
+    # Create DataFrame from players list and sort by Rating
+    players_df = pd.DataFrame(team_info['players'])
+    
+    # Check if DataFrame is empty before sorting and displaying
     if not players_df.empty:
+        players_df.sort_values(by='Rating', ascending=False, inplace=True)
         st.write(players_df[['Name', 'Price', 'Role', 'Rating']])  # Include Rating here
 
 # Display remaining players to be auctioned
