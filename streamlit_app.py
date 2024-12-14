@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import random
 
 # Load player data
 try:
@@ -16,18 +15,21 @@ teams = {
     "Maverick": {"purse": 120, "players": []},
 }
 
+# Initialize session state if not already done
 if "auction_state" not in st.session_state:
     st.session_state.auction_state = {
         "available_players": players_df.copy(),
         "current_player": None,
         "current_bid": 0,
         "winning_team": None,
-        "auction_history": [],  # Store auction history for undo
+        "auction_history": [],
     }
 
 def display_team_info(team_name):
+    """Display team information including players and purse."""
     st.subheader(team_name)
     team_players = pd.DataFrame(teams[team_name]["players"])
+    
     if not team_players.empty:
         for role in team_players["Role"].unique():
             st.write(f"**{role}**")
@@ -35,11 +37,14 @@ def display_team_info(team_name):
             st.dataframe(role_players[["Name", "Rating", "Selling Price"]])
     else:
         st.write("No players yet.")
+    
     st.write(f"Purse: {teams[team_name]['purse']} Cr")
 
 def display_available_players():
+    """Display players still available for bidding."""
     st.subheader("Players Still Available")
     available_players = st.session_state.auction_state["available_players"]
+    
     if not available_players.empty:
         for role in available_players["Role"].unique():
             st.write(f"**{role}**")
@@ -49,77 +54,120 @@ def display_available_players():
         st.write("No players left.")
 
 def start_auction():
-    # Select a player only if no player is selected
+    """Start a new auction round by selecting a player."""
     if st.session_state.auction_state["current_player"] is None and not st.session_state.auction_state["available_players"].empty:
         st.session_state.auction_state["current_player"] = st.session_state.auction_state["available_players"].sample(1).iloc[0]
         st.session_state.auction_state["current_bid"] = 2
         st.session_state.auction_state["winning_team"] = None
         st.write(f"Next Player: {st.session_state.auction_state['current_player']['Name']} (Base Price: 2 Cr)")
     else:
-        st.write(f"Current Player: {st.session_state.auction_state['current_player']['Name']}")
+        current_player = st.session_state.auction_state["current_player"]
+        if current_player is not None:
+            st.write(f"Current Player: {current_player['Name']}")
 
 def finalize_auction():
-    if st.session_state.auction_state["winning_team"]:
-        winning_team = st.session_state.auction_state["winning_team"]
+    """Finalize the auction for the current player."""
+    winning_team = st.session_state.auction_state["winning_team"]
+    
+    if winning_team:
         player = st.session_state.auction_state["current_player"]
         price = st.session_state.auction_state["current_bid"]
 
+        # Update team purse and player list
         teams[winning_team]["purse"] -= price
         teams[winning_team]["players"].append({**player.to_dict(), "Selling Price": price})
 
-        st.session_state.auction_state["available_players"] = st.session_state.auction_state["available_players"][st.session_state.auction_state["available_players"]["Name"] != player["Name"]]
-        st.write(f"{player['Name']} sold to {winning_team} for {price} Cr")
+        # Remove player from available players
+        st.session_state.auction_state["available_players"] = \
+            st.session_state.auction_state["available_players"][st.session_state.auction_state["available_players"]["Name"] != player["Name"]]
+
+        # Log auction history
         st.session_state.auction_state["auction_history"].append({"player": player, "team": winning_team, "price": price})
-        st.session_state.auction_state["current_player"] = None
+        
+        # Reset current player state
+        reset_current_player()
+        
+        st.success(f"{player['Name']} sold to {winning_team} for {price} Cr")
     else:
-        st.write("No bids placed for this player.")
-        if st.session_state.auction_state["current_player"] is not None:
-            st.session_state.auction_state["auction_history"].append({"player": st.session_state.auction_state["current_player"], "team": None, "price": 0})
-            st.session_state.auction_state["current_player"] = None
-            st.write(f"{player['Name']} goes unsold")
+        handle_unsold_player()
+
+def reset_current_player():
+    """Reset the current player and bid state."""
+    st.session_state.auction_state["current_player"] = None
+    st.session_state.auction_state["current_bid"] = 0
+    st.session_state.auction_state["winning_team"] = None
+
+def handle_unsold_player():
+    """Handle case when no bids are placed for the current player."""
+    player = st.session_state.auction_state["current_player"]
+    
+    if player is not None:
+        # Log unsold player in auction history
+        st.session_state.auction_state["auction_history"].append({"player": player, "team": None, "price": 0})
+        
+        reset_current_player()
+        
+        st.warning(f"{player['Name']} goes unsold")
 
 def undo_last_auction():
+    """Undo the last auction action."""
     if st.session_state.auction_state["auction_history"]:
         last_auction = st.session_state.auction_state["auction_history"].pop()
-        if last_auction["team"]:
+        
+        if last_auction.get("team"):
             teams[last_auction["team"]]["purse"] += last_auction["price"]
             teams[last_auction["team"]]["players"].pop()
-            st.session_state.auction_state["available_players"] = pd.concat([st.session_state.auction_state["available_players"], pd.DataFrame([last_auction["player"]])], ignore_index=True)
-        st.write("Last auction undone.")
-    else:
-        st.write("No auctions to undo.")
+            # Re-add player to available players
+            last_player_df = pd.DataFrame([last_auction["player"]])
+            st.session_state.auction_state["available_players"] = pd.concat(
+                [st.session_state.auction_state["available_players"], last_player_df], ignore_index=True)
 
+        reset_current_player()
+        
+        st.success("Last auction undone.")
+    else:
+        st.warning("No auctions to undo.")
+
+# Streamlit app layout
 st.title("Player Auction")
 
 if st.button("Start Auction"):
     start_auction()
 
-if st.session_state.auction_state["current_player"] is not None:
+if (current_player := st.session_state.auction_state.get("current_player")) is not None:
     cols = st.columns(3)
-    bid_placed = False
+    
     for i, team_name in enumerate(teams):
         # Prevent the winning team from placing a bid again
-        if st.session_state.auction_state["winning_team"] != team_name:
+        if team_name != (st.session_state.auction_state.get("winning_team")):
             if cols[i].button(f"{team_name} Bid"):
-                st.session_state.auction_state["current_bid"] += 0.5
-                st.session_state.auction_state["winning_team"] = team_name
-                bid_placed = True
-    if st.session_state.auction_state["winning_team"]:
-        st.write(f"Current Bid: {st.session_state.auction_state['current_bid']} Cr by {st.session_state.auction_state['winning_team']}")
+                # Increase bid and set winning team
+                bid_amount_increment = 0.5
+                new_bid_amount = round(st.session_state.auction_state['current_bid'] + bid_amount_increment, 1)
+                
+                if new_bid_amount <= teams[team_name]["purse"]:  # Check if the team can afford the new bid
+                    st.session_state.auction_state['current_bid'] = new_bid_amount
+                    st.session_state.auction_state['winning_team'] = team_name
 
+                break
+
+if (winning_team := st.session_state.auction_state.get("winning_team")) is not None:
+    current_bid = round(st.session_state.auction_state['current_bid'], 1)
+    st.write(f"Current Bid: {current_bid} Cr by {winning_team}")
+
+# Finalize or pass on current auction state
 if st.button("Finalize Auction"):
     finalize_auction()
 
-if st.button("Next Player"):
-    start_auction()
-
-if st.button("Pass"):
-    finalize_auction()
-
+if (st.button("Next Player") or (st.button("Pass") and reset_current_player())):
+    reset_current_player()
+    
 if st.button("Undo Last Auction"):
     undo_last_auction()
 
 st.write("---")
+
+# Display teams' information
 team_cols = st.columns(3)
 for i, team_name in enumerate(teams):
     with team_cols[i]:
