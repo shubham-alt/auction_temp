@@ -26,8 +26,13 @@ if "auction_state" not in st.session_state:
         "current_bid": 0,
         "winning_team": None,
         "auction_history": [],
-        "bidding_teams": list(teams.keys())  # Keep track of bidding teams
     }
+
+# Make sure 'bidding_teams' exists in auction_state
+if "bidding_teams" not in st.session_state.auction_state:
+    st.session_state.auction_state["bidding_teams"] = list(teams.keys())  # Initialize bidding teams
+
+
 
 def display_team_info(team_name):
     # Function to display team info (e.g., players, purse)
