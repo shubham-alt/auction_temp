@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 
+# Set the app layout to wide mode
+st.set_page_config(layout="wide")
+
 # Load player data
 try:
     players_df = pd.read_csv("players_data.csv")
@@ -49,10 +52,16 @@ def display_available_players():
     available_players = st.session_state.auction_state["available_players"]
     
     if not available_players.empty:
-        for role in available_players["Role"].unique():
-            st.write(f"**{role}**")
-            role_players = available_players[available_players["Role"] == role].sort_values(by="Rating", ascending=False)
-            st.dataframe(role_players[["Name", "Rating"]])
+        # Create columns for each role
+        roles = available_players["Role"].unique()
+        cols = st.columns(len(roles))  # Create one column for each role
+
+        for i, role in enumerate(roles):
+            with cols[i]:
+                st.write(f"**{role}**")
+                role_players = available_players[available_players["Role"] == role].sort_values(by="Rating", ascending=False)
+                st.dataframe(role_players[["Name", "Rating"]])
+
     else:
         st.write("No players left.")
 
