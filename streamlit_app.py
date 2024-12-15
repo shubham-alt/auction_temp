@@ -32,6 +32,7 @@ if "auction_state" not in st.session_state:
         "auction_progress": "Starting",  # Initial state for auction progress
     }
 
+
 # Initialize bidding teams
 def display_team_info(team_name):
     """Display team information including players and purse."""
