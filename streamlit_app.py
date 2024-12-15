@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import time
 
 # Set the app layout to wide mode
 st.set_page_config(layout="wide")
@@ -28,6 +29,7 @@ if "auction_state" not in st.session_state:
         "current_bid": 0,
         "winning_team": None,
         "auction_history": [],
+        "auction_progress": "Starting",  # Initial state for auction progress
     }
 
 # Initialize bidding teams
@@ -73,6 +75,7 @@ def start_auction():
         st.session_state.auction_state["current_player"] = selected_player
         st.session_state.auction_state["current_bid"] = 1.5  # Set base price to 1.5 Cr
         st.session_state.auction_state["winning_team"] = None
+        st.session_state.auction_state["auction_progress"] = "Bidding in Progress"
         st.write(f"Next Player: {selected_player['Name']} (Base Price: 1.5 Cr)")
         st.write(f"**Role**: {selected_player['Role']}")
         st.write(f"**Rating**: {selected_player['Rating']}")
@@ -105,15 +108,18 @@ def finalize_auction():
         
         st.success(f"{player['Name']} ({player['Role']}, Rating: {player['Rating']}) sold to {winning_team} for {price} Cr")
         
+        # Display winner animation
+        winner_animation(winning_team, player['Name'])
+
     else:
         handle_unsold_player()
-
 
 def reset_current_player():
     """Reset the current player and bid state."""
     st.session_state.auction_state["current_player"] = None
     st.session_state.auction_state["current_bid"] = 0
     st.session_state.auction_state["winning_team"] = None
+    st.session_state.auction_state["auction_progress"] = "Waiting for Next Player"
 
 def handle_unsold_player():
     """Handle case when no bids are placed for the current player."""
@@ -150,8 +156,29 @@ def undo_last_auction():
     else:
         st.warning("No auctions to undo.")
 
+def winner_animation(winning_team, player_name):
+    """Animate the winner and the sold player with a flashing text effect."""
+    for i in range(5):  # Flashing text for 5 times
+        st.markdown(f"<h1 style='color: green; text-align: center;'>🎉 {winning_team} wins {player_name}! 🎉</h1>", unsafe_allow_html=True)
+        time.sleep(0.5)
+        st.markdown("<h1 style='color: white; text-align: center;'>🎉 🎉 🎉 </h1>", unsafe_allow_html=True)
+        time.sleep(0.5)
+
 # Streamlit app layout
 st.title("Player Auction")
+
+# Add a background color and layout
+st.markdown("""
+    <style>
+        body {
+            background-color: #f4f4f4;
+        }
+        .main {
+            background-color: #ffffff;
+            padding: 15px;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 if (st.button("Start Auction", key="start_auction_button")):
     start_auction()
@@ -159,19 +186,16 @@ if (st.button("Start Auction", key="start_auction_button")):
 if (st.button("Finalize Auction", key="finalize_auction_button")):
     finalize_auction()
 
-# Prevent further bid from the winning team
+# Display current bid information if there is a winning team
 if (current_player := st.session_state.auction_state.get("current_player")) is not None:
     cols = st.columns(3)
 
     st.write(f"**Current Player**: {current_player['Name']}")
     st.write(f"**Role**: {current_player['Role']}")
     st.write(f"**Rating**: {current_player['Rating']}")
-    st.write(f"**Current Bid**: {st.session_state.auction_state['current_bid']} Cr")
     
     for i, team_name in enumerate(teams):
-        # Ensure the team's bid button stays visible for all teams
         with cols[i]:
-#            st.markdown(f"<div style='background-color: {'#FFD700' if team_name == 'Mospher' else '#1E90FF' if team_name == 'Goku' else '#32CD32'}; padding: 10px;'>", unsafe_allow_html=True)
             if st.button(f"{team_name} Bid", key=f"bid_button_{team_name}"):
                 # If the team already has the current bid, prevent them from bidding
                 if st.session_state.auction_state['winning_team'] == team_name:
@@ -192,23 +216,23 @@ if (current_player := st.session_state.auction_state.get("current_player")) is n
                     st.write(f"{team_name} placed a bid of {new_bid_amount} Cr!")
                 else:
                     st.write(f"{team_name} cannot bid due to insufficient purse.")
-#            st.markdown(f"</div>", unsafe_allow_html=True)
 
-# Display current bid information if there is a winning team
-if (winning_team := st.session_state.auction_state.get("winning_team")) is not None:
-    current_bid = round(st.session_state.auction_state['current_bid'], 1)
-    st.markdown(f"**Current Bid:** {current_bid} Cr by **{winning_team}**", unsafe_allow_html=True)
+# Display auction progress indicator
+st.subheader(f"Auction Progress: {st.session_state.auction_state['auction_progress']}")
 
-if (st.button("Undo Last Auction", key="undo_last_auction_button")):
-    undo_last_auction()
+# Display top 5 players by selling price
+top_players = sorted(st.session_state.auction_state["auction_history"], key=lambda x: x["price"], reverse=True)[:5]
+top_players_info = [{"Player": p["player"]["Name"], "Team": p["team"], "Price": p["price"]} for p in top_players]
+st.subheader("Top 5 Players by Selling Price")
+st.table(top_players_info)
 
-st.write("---")
+# Display auction progress with current purse remaining for each team
+st.subheader("Teams Purse Progress")
+team_purse_data = [{"Team": team_name, "Purse Left": teams[team_name]["purse"]} for team_name in teams]
+st.table(team_purse_data)
 
-# Display teams' information
-team_cols = st.columns(3)
-for i, team_name in enumerate(teams):
-    with team_cols[i]:
-        display_team_info(team_name)
-
-st.write("---")
-display_available_players()
+# Display auction history (top 10 most recent auctions)
+st.subheader("Auction History")
+auction_history = [{"Player": h["player"]["Name"], "Team": h["team"], "Price": h["price"]} for h in
+                   st.session_state.auction_state["auction_history"]]
+st.table(auction_history[:10])
