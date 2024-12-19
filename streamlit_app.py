@@ -25,7 +25,7 @@ teams = st.session_state.teams  # Alias for easier access
 
 pre_assigned_players = [
     {"Name": "KL Rahul", "Role": "WK", "Rating": 95, "Selling Price": 13, "Team": "Maverick"},
-    {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"},
+    {"Name": "Babar Azam", "Role": "BAT", "Rating": 90, "Selling Price": 8.5, "Team": "Goku"},
     {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"},
     {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"},
     {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"}
