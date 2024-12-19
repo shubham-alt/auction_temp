@@ -28,8 +28,8 @@ pre_assigned_players = [
     {"Name": "Babar Azam", "Role": "BAT", "Rating": 90, "Selling Price": 8.5, "Team": "Goku"},
     {"Name": "Van der Dussen", "Role": "BAT", "Rating": 87, "Selling Price": 3, "Team": "Mospher"},
     {"Name": "Pat Cummins", "Role": "BOWL", "Rating": 89, "Selling Price": 9.5, "Team": "Maverick"},
-    {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"},
-    {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"}    
+    {"Name": "Saud Shakeel", "Role": "BAT", "Rating": 86, "Selling Price": 6.5, "Team": "Maverick"},
+    {"Name": "Tim Southee", "Role": "BOWL", "Rating": 82, "Selling Price": 3, "Team": "Goku"}    
 ]
 
 for player in pre_assigned_players:
