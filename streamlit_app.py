@@ -28,7 +28,7 @@ pre_assigned_players = [
     {"Name": "Babar Azam", "Role": "BAT", "Rating": 90, "Selling Price": 8.5, "Team": "Goku"},
     {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"},
     {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"},
-    {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"}
+    {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"},
     {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"}    
 ]
 
