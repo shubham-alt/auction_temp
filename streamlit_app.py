@@ -20,6 +20,28 @@ if "teams" not in st.session_state:
     }
 teams = st.session_state.teams  # Alias for easier access
 
+# Section to pre-assign players (can be commented out if not needed)
+# Uncomment the section below to pre-assign players to teams
+
+pre_assigned_players = [
+    {"Name": "Player A", "Role": "Batsman", "Rating": 85, "Selling Price": 10, "Team": "Mospher"},
+    {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"},
+    {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"},
+    {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"},
+    {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"}
+    {"Name": "Player B", "Role": "Bowler", "Rating": 90, "Selling Price": 15, "Team": "Goku"}    
+]
+
+for player in pre_assigned_players:
+    team_name = player["Team"]
+    if team_name in teams:
+        # Deduct from the team's purse and add the player to the team
+        teams[team_name]["purse"] -= player["Selling Price"]
+        teams[team_name]["players"].append({key: player[key] for key in ["Name", "Role", "Rating", "Selling Price"]})
+        # Remove pre-assigned players from the available players list
+        players_df = players_df[players_df["Name"] != player["Name"]]
+
+
 # Initialize session state for auction data
 if "auction_state" not in st.session_state:
     st.session_state.auction_state = {
