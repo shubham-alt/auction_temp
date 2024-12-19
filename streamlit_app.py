@@ -23,23 +23,23 @@ teams = st.session_state.teams  # Alias for easier access
 # Section to pre-assign players (can be commented out if not needed)
 # Uncomment the section below to pre-assign players to teams
 
-pre_assigned_players = [
-    {"Name": "KL Rahul", "Role": "WK", "Rating": 95, "Selling Price": 13, "Team": "Maverick"},
-    {"Name": "Babar Azam", "Role": "BAT", "Rating": 90, "Selling Price": 8.5, "Team": "Goku"},
-    {"Name": "Van der Dussen", "Role": "BAT", "Rating": 87, "Selling Price": 3, "Team": "Mospher"},
-    {"Name": "Pat Cummins", "Role": "BOWL", "Rating": 89, "Selling Price": 9.5, "Team": "Maverick"},
-    {"Name": "Saud Shakeel", "Role": "BAT", "Rating": 86, "Selling Price": 6.5, "Team": "Maverick"},
-    {"Name": "Tim Southee", "Role": "BOWL", "Rating": 82, "Selling Price": 3, "Team": "Mospher"}    
-]
+# pre_assigned_players = [
+#     {"Name": "KL Rahul", "Role": "WK", "Rating": 95, "Selling Price": 13, "Team": "Maverick"},
+#     {"Name": "Babar Azam", "Role": "BAT", "Rating": 90, "Selling Price": 8.5, "Team": "Goku"},
+#     {"Name": "Van der Dussen", "Role": "BAT", "Rating": 87, "Selling Price": 3, "Team": "Mospher"},
+#     {"Name": "Pat Cummins", "Role": "BOWL", "Rating": 89, "Selling Price": 9.5, "Team": "Maverick"},
+#     {"Name": "Saud Shakeel", "Role": "BAT", "Rating": 86, "Selling Price": 6.5, "Team": "Maverick"},
+#     {"Name": "Tim Southee", "Role": "BOWL", "Rating": 82, "Selling Price": 3, "Team": "Mospher"}    
+# ]
 
-for player in pre_assigned_players:
-    team_name = player["Team"]
-    if team_name in teams:
-        # Deduct from the team's purse and add the player to the team
-        teams[team_name]["purse"] -= player["Selling Price"]
-        teams[team_name]["players"].append({key: player[key] for key in ["Name", "Role", "Rating", "Selling Price"]})
-        # Remove pre-assigned players from the available players list
-        players_df = players_df[players_df["Name"] != player["Name"]]
+# for player in pre_assigned_players:
+#     team_name = player["Team"]
+#     if team_name in teams:
+#         # Deduct from the team's purse and add the player to the team
+#         teams[team_name]["purse"] -= player["Selling Price"]
+#         teams[team_name]["players"].append({key: player[key] for key in ["Name", "Role", "Rating", "Selling Price"]})
+#         # Remove pre-assigned players from the available players list
+#         players_df = players_df[players_df["Name"] != player["Name"]]
 
 
 # Initialize session state for auction data
