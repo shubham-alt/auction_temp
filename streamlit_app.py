@@ -14,8 +14,8 @@ except FileNotFoundError:
 # Initialize teams. Use session state to persist team data.
 if "teams" not in st.session_state:
     st.session_state.teams = {
-        "Mospher": {"purse": 120, "players": []},
-        "Goku": {"purse": 120, "players": []},
+        "Mospher": {"purse": 95, "players": []},
+        "Goku": {"purse": 105, "players": []},
         "Maverick": {"purse": 120, "players": []},
     }
 teams = st.session_state.teams  # Alias for easier access
